@@ -3,7 +3,7 @@ data:extend({
         type = "double-setting",
         name = "volume",
         setting_type = "startup",
-        default_value = 0.7
+        default_value = 1
     },
     {
         type = "int-setting",
@@ -35,5 +35,10 @@ data:extend({
         minimum_value = 0,
         maximum_value = 255
     },
-    
+    {
+        type = "bool-setting",
+        name = "use_simple_sound_system",
+        setting_type = "startup",
+        default_value = false
+    },
 })
