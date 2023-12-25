@@ -1,1 +1,1 @@
-require("prototypes/se-supercomputer-change-sound")
+require("prototypes.se-supercomputer-change-sound")
