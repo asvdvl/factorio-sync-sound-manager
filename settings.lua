@@ -25,4 +25,10 @@ data:extend({
         setting_type = "startup",
         default_value = false
     },
+    {
+        type = "bool-setting",
+        name = "debug",
+        setting_type = "startup",
+        default_value = false
+    },
 })
