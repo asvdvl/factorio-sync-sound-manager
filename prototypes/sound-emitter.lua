@@ -1,9 +1,9 @@
-if settings.startup["debug"].value then
+if settings.startup["rwse-debug"].value then
   log('creating sound emitter prototype')
 end
 local file_prefix = "__RainWorld-se-supercomputer-sound__/sound/rw-randomGods-sc-"
 local icon = "__RainWorld-se-supercomputer-sound__/graphics/blank.png"
-if settings.startup["debug"].value then
+if settings.startup["rwse-debug"].value then
   log('making emitter visible')
   icon = "__base__/graphics/icons/programmable-speaker.png"
 end
