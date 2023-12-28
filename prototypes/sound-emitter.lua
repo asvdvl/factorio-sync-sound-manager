@@ -1,10 +1,8 @@
 if settings.startup["rwse-debug"].value then
   log('creating sound emitter prototype')
 end
-local file_prefix = "__RainWorld-se-supercomputer-sound__/sound/rw-randomGods-sc-"
 local icon = "__RainWorld-se-supercomputer-sound__/graphics/blank.png"
 if settings.startup["rwse-debug"].value then
-  log('making emitter visible')
   icon = "__base__/graphics/icons/programmable-speaker.png"
 end
 data:extend
@@ -16,19 +14,19 @@ data:extend
     icon_size = 64,
     working_sound = {
         sound = {
-              filename = file_prefix.."4.ogg",
+              filename = "__base__/sound/silence-1sec.ogg",
               volume = 1
             },
         persistent = true,
     },
-    selection_box = {{-2.5, -2.5}, {2.5, 2.5}},
+    selection_box = {{-0.5, -0.5}, {0.5, 0.5}},
     collision_box = {{-0.5, -0.5}, {0.5, 0.5}},
     collision_mask = {},
     flags = {
         "placeable-neutral",
         "placeable-player",
-        --"not-deconstructable",
-        "not-blueprintable"
+        "not-deconstructable",
+        "not-blueprintable",
         --"not-rotatable",
         --"placeable-off-grid",
         --"not-repairable",
