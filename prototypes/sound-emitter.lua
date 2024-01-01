@@ -30,13 +30,13 @@ data:extend
             --"not-rotatable",
             --"placeable-off-grid",
             --"not-repairable",
-            --"not-on-map",
+            "not-on-map",
             --"not-blueprintable",
             --"not-deconstructable",
             --"hidden",
-            --"hide-alt-info",
-            --"not-flammable",
-            --"not-in-kill-statistics",
+            "hide-alt-info",
+            "not-flammable",
+            "not-in-kill-statistics",
         },
         picture =
         {
