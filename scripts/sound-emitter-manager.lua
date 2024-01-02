@@ -24,7 +24,7 @@ local function on_init()
             for _, entity in pairs(emmiters) do
                 debugMsg('destroy '..coordinateFormat(entity))
                 entity.destroy()
-            end            
+            end
         end
 
         --find all machines and create emitter for it
@@ -33,7 +33,7 @@ local function on_init()
             debugMsg('found '..tostring(#workMachines)..' machines')
             for _, machine in pairs(workMachines) do
                 debugMsg('create emmiter for '..coordinateFormat(machine))
-                surface.create_entity{name = "sound-emitter", position = machine.position}
+                surface.create_entity{name = "sound-emitter"..'__'..machine.name, position = machine.position}
             end
         end
     end
