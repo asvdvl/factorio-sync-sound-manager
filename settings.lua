@@ -47,4 +47,11 @@ data:extend({
         default_value = false,
         order = "ea"
     },
+    {
+        type = "bool-setting",
+        name = "rwse-sync-machine-state-with-emitter",
+        setting_type = "runtime-global",
+        default_value = true,
+        order = "fa"
+    },
 })

@@ -1,10 +1,7 @@
 if settings.startup["rwse-debug"].value then
     log('creating sound emitter prototype')
 end
-local icon = "__RainWorld-se-supercomputer-sound__/graphics/blank.png"
-if settings.startup["rwse-debug"].value then
-    icon = "__base__/graphics/icons/programmable-speaker.png"
-end
+local icon = "__base__/graphics/icons/programmable-speaker.png"
 data:extend
 {
     {

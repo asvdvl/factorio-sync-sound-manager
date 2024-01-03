@@ -37,6 +37,10 @@ local function itsRightEntity(name, dontCheck)
 end
 
 local function on_entity_create(event, dontCheck)
+    --just to be sure
+    if not event.created_entity.valid then
+        return
+    end
 
     if itsRightEntity(event.created_entity.name, dontCheck) then
         local entity = event.created_entity
@@ -47,6 +51,10 @@ local function on_entity_create(event, dontCheck)
 end
 
 local function on_entity_delete(event)
+    --just to be sure
+    if not event.entity.valid then
+        return
+    end
     if itsRightEntity(event.entity.name) then
         local entity = event.entity
         local surface = entity.surface
@@ -96,34 +104,28 @@ local function on_init()
             end
         end
     end
-
-    --I would like to place this code not in init, but thanks to one Czech company...
-    local filters = {}
-    for _, protoName in pairs(global.used_prototypes) do
-        filters[#filters+1] = {filter = "type", type = proto_type}
-        filters[#filters+1] = {filter = "name", name = protoName, mode = "and"}
-    end
-    script.on_event(defines.events.on_built_entity, on_entity_create, filters)
-    script.on_event(defines.events.on_robot_built_entity, on_entity_create, filters)
-
-    script.on_event(defines.events.on_entity_died, on_entity_delete, filters)
-    script.on_event(defines.events.on_entity_destroyed, on_entity_delete)
-    script.on_event(defines.events.on_player_mined_entity, on_entity_delete, filters)
-    script.on_event(defines.events.on_robot_mined_entity, on_entity_delete, filters)
 end
 
-local function on_load()
-    if not global.used_prototypes then
-        log('test')
-    end
-end
+--[[
+    Thank you BIG to you, wube, you don’t give access to global at the on_load stage and during
+    the first execution of control.lua (I can understand this), 
+    you don’t give access to prototypes (why?!) until the game is fully loaded,
+    so I have to send ALL events and check whether this entity is correct or not,
+    in Lua!
+    
+    Instead of simply going through all the prototypes (which, please note, cannot be changed in the runtime stage)
+    and generating a list of filters, or after init generating a list of them and saving them to the global table,
+    I will be forced to slow down the game. Thanks.
+]]
+local filters = {{filter = "type", type = proto_type}}
+script.on_event(defines.events.on_built_entity, on_entity_create, filters)
+script.on_event(defines.events.on_robot_built_entity, on_entity_create, filters)
 
-local function on_configuration_changed()
-    on_init()
-end
+script.on_event(defines.events.on_entity_died, on_entity_delete, filters)
+script.on_event(defines.events.on_entity_destroyed, on_entity_delete)
+script.on_event(defines.events.on_player_mined_entity, on_entity_delete, filters)
+script.on_event(defines.events.on_robot_mined_entity, on_entity_delete, filters)
 
 commands.add_command("rwse-reinit", {"description.command-reinit"}, on_init)
 
 script.on_init(on_init)
-script.on_load(on_load)
-script.on_configuration_changed(on_configuration_changed)
