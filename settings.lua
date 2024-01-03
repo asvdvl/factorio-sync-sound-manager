@@ -31,6 +31,16 @@ data:extend({
         order = "da"
     },
     {
+        type = "string-setting",
+        name = "rwse-working_proto_type_custom",
+        setting_type = "startup",
+        default_value = "assembling-machine",
+        allow_blank = true,
+        auto_trim = true,
+        hidden = true,
+        order = "db"
+    },
+    {
         type = "bool-setting",
         name = "rwse-debug",
         setting_type = "startup",
