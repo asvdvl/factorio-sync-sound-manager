@@ -59,13 +59,19 @@ local function on_entity_create(event, dontCheck)
     if not entity.valid then
         return
     end
+    --make sure we are not in "update mode", dontCheck is only true when called manually
+    if not dontCheck and settings.global["rwse-sync-machine-state-with-emitter"].value then
+        debugMsg('detect new entity, mark and do nothing now '..coordinateFormat(entity))
+        table.insert(global.disabled_entities_positions[entity.surface.name], entity.position)
+        return
+    end
     --also check that we don’t have an emitter yet
     local emmiters = surface.find_entities_filtered{type = emitter_type, name = parentName..'__'..entity.name, position = entity.position}
     if #emmiters > 0 then
         return
     end
     if itsRightEntity(entity.name, dontCheck) then
-        debugMsg('detect new entity '..coordinateFormat(entity))
+        debugMsg('detect new entity(or update) '..coordinateFormat(entity))
         surface.create_entity{name = "sound-emitter"..'__'..entity.name, position = entity.position}
     end
 end
@@ -146,7 +152,7 @@ local function emitters_update(event)
     end
     for surfaceName, surface in pairs(game.surfaces) do
         for _, protoName in pairs(global.used_prototypes) do
-            local prew_disabled_entities_positions = global.disabled_entities_positions[surfaceName]
+            local disabled_entities_positions = global.disabled_entities_positions[surfaceName]
             local emmiters = surface.find_entities_filtered{type = emitter_type, name = parentName..'__'..protoName}
             if #emmiters > 0 then
                 for _, emitter in pairs(emmiters) do
@@ -155,7 +161,7 @@ local function emitters_update(event)
                         local machine = machines[1]
                         if not isStatusIsWorking(machine.status) then
                             debugMsg('detect stopped machine '..coordinateFormat(machine))
-                            table.insert(global.disabled_entities_positions[surfaceName], emitter.position)
+                            table.insert(disabled_entities_positions, emitter.position)
                             emitter.destroy()
                         end
                     else
@@ -164,8 +170,8 @@ local function emitters_update(event)
                     end
                 end
             end
-
-            for i, position in pairs(prew_disabled_entities_positions) do
+            --double processing is certainly bad, but copying tables is even worse
+            for i, position in pairs(disabled_entities_positions) do
                 local machines = surface.find_entities_filtered{type = proto_type, position = position}
                 if #machines == 1 and itsRightEntity(machines[1].name) then
                     local machine = machines[1]
@@ -174,7 +180,7 @@ local function emitters_update(event)
                         local pseudoEvent = {}
                         pseudoEvent['created_entity'] = machine
                         on_entity_create(pseudoEvent, true)
-                        prew_disabled_entities_positions[i] = nil
+                        disabled_entities_positions[i] = nil
                     end
                 end
             end
