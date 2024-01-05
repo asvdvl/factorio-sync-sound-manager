@@ -89,6 +89,14 @@ local function on_entity_delete(event)
             debugMsg('destroy '..coordinateFormat(entity))
             entity.destroy()
         end
+        local x, y = entity.position.x, entity.position.y
+        local disabled_entities_positions = global.disabled_entities_positions[entity.surface.name]
+        for i, position in pairs(disabled_entities_positions) do
+            if position.x == x and position.y == y then
+                disabled_entities_positions[i] = nil
+                return
+            end
+        end
     end
 end
 
@@ -107,8 +115,6 @@ local function on_init()
             i = i + 1
         end
     end
-    i = nil
-
     for _, surface in pairs(game.surfaces) do
         --destroy all emitters
         for _, protoName in pairs(global.used_prototypes) do
