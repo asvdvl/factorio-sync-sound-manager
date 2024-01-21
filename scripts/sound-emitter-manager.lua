@@ -52,17 +52,57 @@ local function itsRightEntity(name, dontCheck)
     return itsRightEntity
 end
 
+local function switchStateInGlobTableFind(entities_positions, position)
+    for i, position_intable in pairs(entities_positions) do
+        if position_intable.x == position.x and position_intable.y == position.y then
+            return i
+        end
+    end
+    return nil
+end
+
+local function switchStateInGlobTable(position, surface, newstate, isnew)
+    local ent_pos = global.entities_positions
+
+    local entities_positions_rev = ent_pos.enabled[surface]
+    local entities_positions = ent_pos.disabled[surface]
+    if newstate then
+        entities_positions = ent_pos.enabled[surface]
+        entities_positions_rev = ent_pos.disabled[surface]
+    end
+
+    local ind = switchStateInGlobTableFind(entities_positions, position)
+    local ind_rev = switchStateInGlobTableFind(entities_positions_rev, position)
+    if isnew then
+        if ind then
+            return
+        end
+        if ind_rev then
+            entities_positions_rev[ind_rev] = nil
+        end
+        table.insert(entities_positions_rev, position)
+        return
+    end
+
+    if ind then
+        table.insert(entities_positions_rev, position)
+        entities_positions[ind] = nil
+    end
+end
+
 local function on_entity_create(event, dontCheck)
     local entity = event.created_entity
     local surface = entity.surface
     --just to be sure
-    if not entity.valid then
+    if not entity or not entity.valid then
+        debugMsg('on_entity_create entity not valid!')
         return
     end
     --make sure we are not in "update mode", dontCheck is only true when called manually
     if not dontCheck and settings.global["rwse-sync-machine-state-with-emitter"].value then
         debugMsg('detect new entity, mark and do nothing now '..coordinateFormat(entity))
-        table.insert(global.disabled_entities_positions[entity.surface.name], entity.position)
+        switchStateInGlobTable(entity.position, surface.name, false, true)
+        --table.insert(global.entities_positions.disabled[entity.surface.name], entity.position)
         return
     end
     --also check that we don’t have an emitter yet
@@ -73,12 +113,15 @@ local function on_entity_create(event, dontCheck)
     if itsRightEntity(entity.name, dontCheck) then
         debugMsg('detect new entity(or update) '..coordinateFormat(entity))
         surface.create_entity{name = "sound-emitter"..'__'..entity.name, position = entity.position}
+        switchStateInGlobTable(entity.position, surface.name, true, true)
+        --table.insert(global.entities_positions.enabled[entity.surface.name], entity.position)
     end
 end
 
 local function on_entity_delete(event)
-    --just to be sure
-    if not event.entity.valid then
+    --sometimes this event call without entity row(e.g. if it was beam)
+    if not event.entity or not event.entity.valid then
+        debugMsg('on_entity_delete entity not valid!')
         return
     end
     if itsRightEntity(event.entity.name) then
@@ -89,24 +132,23 @@ local function on_entity_delete(event)
             debugMsg('destroy '..coordinateFormat(entity))
             entity.destroy()
         end
-        local x, y = entity.position.x, entity.position.y
-        local disabled_entities_positions = global.disabled_entities_positions[entity.surface.name]
-        for i, position in pairs(disabled_entities_positions) do
-            if position.x == x and position.y == y then
-                disabled_entities_positions[i] = nil
-                return
-            end
-        end
+        switchStateInGlobTable(entity.position, surface.name, false, true)
     end
 end
 
 local function on_init()
+    --glob table init
     global.used_prototypes = {}
-    global.disabled_entities_positions = {}
+    global.entities_positions = {}
+    global.entities_positions.enabled = {}
+    global.entities_positions.disabled = {}
     for surfaceName, _ in pairs(game.surfaces) do
-        global.disabled_entities_positions[surfaceName] = {}
+        global.entities_positions.enabled[surfaceName] = {}
+        global.entities_positions.disabled[surfaceName] = {}
     end
     local protoPrefix = "^" .. parentName:gsub("-", "%%-")..'__'
+
+    --find right prototypes
     local i = 1
     for protoName, value in pairs(game.entity_prototypes) do
         if string.find(protoName, protoPrefix) then
@@ -140,6 +182,25 @@ local function on_init()
             end
         end
     end
+
+    game.print('Hello, thanks for installing my mod(modname)!\n'..
+        'I want to warn you that this is my first mod executed in a runtime environment,\n'..
+        'if you experience problems with crashes/slowdowns,\n'..
+        'then in this case I left the option of partial (settings - runtime - '..tostring({"mod-setting-name.rwse-sync-machine-state-with-emitter"})..')'..
+        'and full (settings - startup - '..tostring({"mod-setting-name.rwse-use_simple_sound_system"})..') disabling code running in the world (the mod will still work)')
+
+end
+
+local function validateGlobalTable()
+    --check that table is wrong
+    if not global.used_prototypes or
+        not global.entities_positions or
+        not global.entities_positions.enabled or
+        not global.entities_positions.disabled
+    then
+        debugMsg('global table not valid')
+        on_init()
+    end
 end
 
 --shoud return true if entity working(working, normal, low_power, etc)
@@ -156,9 +217,10 @@ local function emitters_update(event)
     if not settings.global["rwse-sync-machine-state-with-emitter"].value then
         return
     end
+    validateGlobalTable()
     for surfaceName, surface in pairs(game.surfaces) do
         for _, protoName in pairs(global.used_prototypes) do
-            local disabled_entities_positions = global.disabled_entities_positions[surfaceName]
+            local disabled_entities_positions = global.entities_positions.disabled[surfaceName]
             local emmiters = surface.find_entities_filtered{type = emitter_type, name = parentName..'__'..protoName}
             if #emmiters > 0 then
                 for _, emitter in pairs(emmiters) do
@@ -196,7 +258,7 @@ end
 
 local function on_configuration_changed()
     debugMsg('detect configuration change')
-    if settings.global["rwse-sync-machine-state-with-emitter"].value then
+    if not settings.global["rwse-sync-machine-state-with-emitter"].value then
         return
     end
     on_init()   --In general this is not necessary, but I want to make sure that unserviced machines do not appear
