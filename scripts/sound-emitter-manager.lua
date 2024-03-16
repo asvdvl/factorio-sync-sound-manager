@@ -1,3 +1,12 @@
+--[[
+    if you are reading this file with the goal of taking it into your mod for synchronous playback on your machines, 
+        then I ask you to think better,
+    
+    firstly, this is a very crude project (hello wube for making things more complicated)
+    secondly, this is an open source project, if you really decide to use it somewhere, then I will be for any pull request
+    and thirdly, again, if you really decide to use it somewhere, then I have plans to release this module as a separate mod
+]]
+
 local startup = settings.startup
 local emitter_type = "simple-entity"
 local proto_type = startup["rwse-working_proto_type_custom"].value
@@ -183,12 +192,12 @@ local function on_init()
         end
     end
 
-    game.print('Hello, thanks for installing my mod(modname)!\n'..
+    game.print('Hello, thanks for installing my mod(Rain World FP Systems Bus music for SE supercomputer)!\n'..
         'I want to warn you that this is my first mod executed in a runtime environment,\n'..
         'if you experience problems with crashes/slowdowns,\n'..
         'then in this case I left the option of partial (settings - runtime - '..tostring({"mod-setting-name.rwse-sync-machine-state-with-emitter"})..')'..
-        'and full (settings - startup - '..tostring({"mod-setting-name.rwse-use_simple_sound_system"})..') disabling code running in the world (the mod will still work)')
-
+        'and full (settings - startup - '..tostring({"mod-setting-name.rwse-use_simple_sound_system"})..
+        ') disabling code running in the world (the mod will still work, but without some features)')
 end
 
 local function validateGlobalTable()
