@@ -1,5 +1,5 @@
 for _, mainProto in pairs(protoList) do
-    if settings.startup["rwse-debug"].value then
+    if settings.startup["fssm-debug"].value then
         log('clone emitter for '..mainProto.name)
     end
     local soundEmitterCopy = table.deepcopy(data.raw["simple-entity"]["sound-emitter"])

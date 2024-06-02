@@ -9,8 +9,8 @@
 
 local startup = settings.startup
 local emitter_type = "simple-entity"
-local proto_type = startup["rwse-working_proto_type_custom"].value
-local proto_prefix = startup["rwse-working_proto_prefix"].value
+local proto_type = startup["fssm-working_proto_type_custom"].value
+local proto_prefix = startup["fssm-working_proto_prefix"].value
 local validStatuses = {
     defines.entity_status.working,
     defines.entity_status.normal,
@@ -27,13 +27,13 @@ local validStatuses = {
     --defines.entity_status.recharging_after_power_outage,
 }
 if proto_prefix == "<custom>" then
-    proto_prefix = startup["rwse-working_proto_prefix_custom"].value
+    proto_prefix = startup["fssm-working_proto_prefix_custom"].value
 end
 
 local parentName = 'sound-emitter'
 
 local function debugMsg(text)
-    if startup["rwse-debug"].value then
+    if startup["fssm-debug"].value then
         game.print(text)
         log(text..'\n')
     else
@@ -108,7 +108,7 @@ local function on_entity_create(event, dontCheck)
         return
     end
     --make sure we are not in "update mode", dontCheck is only true when called manually
-    if not dontCheck and settings.global["rwse-sync-machine-state-with-emitter"].value then
+    if not dontCheck and settings.global["fssm-sync-machine-state-with-emitter"].value then
         debugMsg('detect new entity, mark and do nothing now '..coordinateFormat(entity))
         switchStateInGlobTable(entity.position, surface.name, false, true)
         --table.insert(global.entities_positions.disabled[entity.surface.name], entity.position)
@@ -195,8 +195,8 @@ local function on_init()
     game.print('Hello, thanks for installing my mod(Rain World FP Systems Bus music for SE supercomputer)!\n'..
         'I want to warn you that this is my first mod executed in a runtime environment,\n'..
         'if you experience problems with crashes/slowdowns,\n'..
-        'then in this case I left the option of partial (settings - runtime - '..tostring({"mod-setting-name.rwse-sync-machine-state-with-emitter"})..')'..
-        'and full (settings - startup - '..tostring({"mod-setting-name.rwse-use_simple_sound_system"})..
+        'then in this case I left the option of partial (settings - runtime - '..tostring({"mod-setting-name.fssm-sync-machine-state-with-emitter"})..')'..
+        'and full (settings - startup - '..tostring({"mod-setting-name.fssm-use_simple_sound_system"})..
         ') disabling code running in the world (the mod will still work, but without some features)')
 end
 
@@ -223,7 +223,7 @@ local function isStatusIsWorking(machineStatus)
 end
 
 local function emitters_update(event)
-    if not settings.global["rwse-sync-machine-state-with-emitter"].value then
+    if not settings.global["fssm-sync-machine-state-with-emitter"].value then
         return
     end
     validateGlobalTable()
@@ -267,7 +267,7 @@ end
 
 local function on_configuration_changed()
     debugMsg('detect configuration change')
-    if not settings.global["rwse-sync-machine-state-with-emitter"].value then
+    if not settings.global["fssm-sync-machine-state-with-emitter"].value then
         return
     end
     on_init()   --In general this is not necessary, but I want to make sure that unserviced machines do not appear
@@ -293,7 +293,7 @@ script.on_event(defines.events.on_entity_destroyed, on_entity_delete)
 script.on_event(defines.events.on_player_mined_entity, on_entity_delete, filters)
 script.on_event(defines.events.on_robot_mined_entity, on_entity_delete, filters)
 
-commands.add_command("rwse-reinit", {"description.command-reinit"}, on_init)
+commands.add_command("fssm-reinit", {"description.command-reinit"}, on_init)
 
 script.on_init(on_init)
 script.on_nth_tick(60, emitters_update)

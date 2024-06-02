@@ -1,4 +1,4 @@
-if settings.startup["rwse-debug"].value then
+if settings.startup["fssm-debug"].value then
     log('creating sound emitter prototype')
 end
 local icon = "__base__/graphics/icons/programmable-speaker.png"
