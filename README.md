@@ -1,4 +1,4 @@
-# factorio-mod-template - template for my mods
+# factorio-sync-sound-manager - synchronous playback of sounds and music for the entity
 
 how to apply:
 1. rename folder with new mod name

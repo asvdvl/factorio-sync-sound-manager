@@ -1,1 +1,1 @@
-# factorio-mod-template - шаблон для моих модов
+# factorio-sync-sound-manager - синхронное воспроизведение звуков и музыки для энтити
