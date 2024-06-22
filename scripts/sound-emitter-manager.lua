@@ -1,40 +1,18 @@
---[[
-    if you are reading this file with the goal of taking it into your mod for synchronous playback on your machines, 
-        then I ask you to think better,
-    
-    firstly, this is a very crude project (hello wube for making things more complicated)
-    secondly, this is an open source project, if you really decide to use it somewhere, then I will be for any pull request
-    and thirdly, again, if you really decide to use it somewhere, then I have plans to release this module as a separate mod
-]]
-
 local startup = settings.startup
 local emitter_type = "simple-entity"
-local proto_type = startup["fssm-working_proto_type_custom"].value
-local proto_prefix = startup["fssm-working_proto_prefix"].value
 local validStatuses = {
     defines.entity_status.working,
     defines.entity_status.normal,
-    defines.entity_status.low_power,
-    ----these lines below are for future use, not now
-    --defines.entity_status.networks_connected,
-    --defines.entity_status.charging,
-    --defines.entity_status.discharging,
-    --defines.entity_status.fully_charged,
-    --defines.entity_status.low_input_fluid,
-    --defines.entity_status.preparing_rocket_for_launch,
-    --defines.entity_status.waiting_to_launch_rocket,
-    --defines.entity_status.launching_rocket,
-    --defines.entity_status.recharging_after_power_outage,
+    defines.entity_status.low_power
 }
-if proto_prefix == "<custom>" then
-    proto_prefix = startup["fssm-working_proto_prefix_custom"].value
-end
 
 local parentName = 'sound-emitter'
 
 local function debugMsg(text)
     if startup["fssm-debug"].value then
-        game.print(text)
+        if game then
+            game.print(text)
+        end
         log(text..'\n')
     else
         --I hope this is only temporary here, because in my opinion, clogging up the logs just isn’t a good idea.
@@ -100,6 +78,7 @@ local function switchStateInGlobTable(position, surface, newstate, isnew)
 end
 
 local function on_entity_create(event, dontCheck)
+    debugMsg("on_entity_create")
     local entity = event.created_entity
     local surface = entity.surface
     --just to be sure
@@ -129,6 +108,7 @@ end
 
 local function on_entity_delete(event)
     --sometimes this event call without entity row(e.g. if it was beam)
+    debugMsg("on_entity_delete")
     if not event.entity or not event.entity.valid then
         debugMsg('on_entity_delete entity not valid!')
         return
@@ -145,12 +125,31 @@ local function on_entity_delete(event)
     end
 end
 
+local function setup_events()
+    debugMsg("setup_events")
+    local filters = global.event_filters
+    assert(type(filters) == "table", "event filters not initialized")
+
+    script.on_event(defines.events.on_built_entity, on_entity_create, filters)
+    script.on_event(defines.events.on_robot_built_entity, on_entity_create, filters)
+
+    script.on_event(defines.events.on_entity_died, on_entity_delete, filters)
+    script.on_event(defines.events.on_entity_destroyed, on_entity_delete)
+    script.on_event(defines.events.on_player_mined_entity, on_entity_delete, filters)
+    script.on_event(defines.events.on_robot_mined_entity, on_entity_delete, filters)
+end
+
 local function on_init()
     --glob table init
+    debugMsg("on_init")
     global.used_prototypes = {}
+
+    global.event_filters = {}
+
     global.entities_positions = {}
     global.entities_positions.enabled = {}
     global.entities_positions.disabled = {}
+
     for surfaceName, _ in pairs(game.surfaces) do
         global.entities_positions.enabled[surfaceName] = {}
         global.entities_positions.disabled[surfaceName] = {}
@@ -162,7 +161,9 @@ local function on_init()
     for protoName, value in pairs(game.entity_prototypes) do
         if string.find(protoName, protoPrefix) then
             --the only reason why I'm looking for emitters is to make sure that I don't desync with the data stage
-            global.used_prototypes[i] = string.sub(protoName, #(parentName..'%__'))
+            local entity = string.sub(protoName, #(parentName..'%__'))
+            global.used_prototypes[i] = entity
+            table.insert(global.event_filters, {filter = "name", name = entity})
             i = i + 1
         end
     end
@@ -191,8 +192,9 @@ local function on_init()
             end
         end
     end
+    setup_events()
 
-    game.print('Hello, thanks for installing my mod(Rain World FP Systems Bus music for SE supercomputer)!\n'..
+    game.print('Hello, thanks for installing my mod(factorio sync sound manager)!\n'..
         'I want to warn you that this is my first mod executed in a runtime environment,\n'..
         'if you experience problems with crashes/slowdowns,\n'..
         'then in this case I left the option of partial (settings - runtime - '..tostring({"mod-setting-name.fssm-sync-machine-state-with-emitter"})..')'..
@@ -273,28 +275,13 @@ local function on_configuration_changed()
     on_init()   --In general this is not necessary, but I want to make sure that unserviced machines do not appear
 end
 
---[[
-    Thank you BIG to you, wube, you don’t give access to global at the on_load stage and during
-    the first execution of control.lua (I can understand this), 
-    you don’t give access to prototypes (why?!) until the game is fully loaded,
-    so I have to send ALL events and check whether this entity is correct or not,
-    in Lua!
-    
-    Instead of simply going through all the prototypes (which, please note, cannot be changed in the runtime stage)
-    and generating a list of filters, or after init generating a list of them and saving them to the global table,
-    I will be forced to slow down the game. Thanks.
-]]
-local filters = {{filter = "type", type = proto_type}}
-script.on_event(defines.events.on_built_entity, on_entity_create, filters)
-script.on_event(defines.events.on_robot_built_entity, on_entity_create, filters)
-
-script.on_event(defines.events.on_entity_died, on_entity_delete, filters)
-script.on_event(defines.events.on_entity_destroyed, on_entity_delete)
-script.on_event(defines.events.on_player_mined_entity, on_entity_delete, filters)
-script.on_event(defines.events.on_robot_mined_entity, on_entity_delete, filters)
-
 commands.add_command("fssm-reinit", {"description.command-reinit"}, on_init)
 
 script.on_init(on_init)
+script.on_load(function (...)
+    debugMsg("on_load")
+    setup_events()
+    log()
+end)
 script.on_nth_tick(60, emitters_update)
 script.on_configuration_changed(on_configuration_changed)
