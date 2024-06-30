@@ -2,11 +2,12 @@ if settings.startup["fssm-debug"].value then
     log('creating sound emitter prototype')
 end
 local icon = "__base__/graphics/icons/programmable-speaker.png"
+local enitter_name = settings.startup["fssm-parent_name"].value
 data:extend
 {
     {
         type = "simple-entity",
-        name = "sound-emitter",
+        name = enitter_name,
 
         icon = icon,
         icon_size = 64,
@@ -62,7 +63,7 @@ data:extend
 }
 
 for key in pairs(data.raw["damage-type"]) do
-    table.insert(data.raw["simple-entity"]["sound-emitter"].resistances,
+    table.insert(data.raw["simple-entity"][enitter_name].resistances,
     {
         type=key,
         decrease = 0,

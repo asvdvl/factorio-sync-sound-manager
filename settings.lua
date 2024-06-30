@@ -1,9 +1,10 @@
 data:extend({
     {
-        type = "double-setting",
-        name = "fssm-volume",
+        type = "string-setting",
+        name = "fssm-parent_name",
         setting_type = "startup",
-        default_value = 1,
+        hidden = true,
+        default_value = "sound-emitter",
         order = "aa"
     },
     {

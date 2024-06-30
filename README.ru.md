@@ -1,1 +1,45 @@
 # factorio-sync-sound-manager - синхронное воспроизведение звуков и музыки для энтити
+
+[en desctiption](https://github.com/asvdvl/factorio-sync-sound-manager/blob/master/README.md)
+
+## Настройки
+Все настройки начинаются с `fssm-`.
+- `Использовать простую звуковую систему`(`use_simple_sound_system`): Не создавать сущности-призраки для синхронного воспроизведения звука.
+- `режим отладки`(`debug`): Включение регистрации событий и действий.
+- `синхронизировать статус машин с эмиттером`(`sync-machine-state-with-emitter`): Если включено, мод будет раз в секунду опрашивать все машины об их состоянии (запущены/остановлены) и, в зависимости от опции, включать/выключать эмиттер. Если вы считаете, что это замедляет игру, отключите эту настройку. Мод больше ничего не делает, кроме проверки и управления.
+- (скрытая)`fssm-parent_name`: внутреннее имя родительского эмиттера
+
+## API - data stage
+requiring:
+```lua
+local fssm = require("__factorio-sync-sound-manager__/prototypes/api")
+```
+Примеры:
+```lua
+-- изменение звука для конкретного объекта.
+fssm.applyNewSound(data.raw["assembling-machine"]["assembling-machine-1"], "__my-mod__/my-sound.ogg")
+
+-- изменение звука для конкретной сущности с пользовательской громкостью.
+fssm.applyNewSound(data.raw["assembling-machine"]["assembling-machine-1"], "__my-mod__/my-sound.ogg", 0.7)
+
+-- только регистрация энтити.
+fssm.registerPrototype(proto)
+```
+- `fssm.applyNewSound(proto, sound_path, volume)`:
+    - Применяет звук к прототипу (заменяет на указанный), также вызывает `registerPrototype(proto)`.
+    Пригодится, если вам нужно полностью переделать звук под свой.
+    - Параметры:
+        - `proto`: any entity from data.raw.
+        - `sound_path`: path to the sound, e.g. `__base__/sound/silence-1sec.ogg`. [docs](https://lua-api.factorio.com/latest/types/FileName.html)
+        - `volume`(optional): [0 - 1], громкость звука, если не указано: `proto.working_sound.sound.volume` или `1` будет установлено. [docs](https://lua-api.factorio.com/latest/types/Sound.html#volume)
+    - Returns: результат вызова registerPrototype
+- `fssm.registerPrototype(proto)`: Регистрирует прототип (сущность) в этом моде.
+    - Основной метод, с помощью которого мой мод понимает, с какими сущностями ему предстоит работать.
+    - Важные моменты для моддеров (особенно если вы обходите функцию applyNewSound или вообще не хотите использовать мои функции на datа стадии):
+        - Для того чтобы runtime-часть мода нашла соответствие энтити - эмиттер, необходимо соблюдать следующий формат имени эмиттера: `soundEmitterName.'__'..proto.name`.
+        - Советую на параметре `working_sound.persistent` установить true на вашй копии эмиттера. но не обязательно, однако тогда нет смысла в этом моде.
+        - При вызове этой функции параметр working_sound.persistent в обьекте эмиттера устанавливается в true
+    - Параметры:
+        - `proto`: любая сущьность из data.raw.
+        - (скрытый, в свойствах обьекта) `proto.working_sound.speacker_audible_distance_modifier`: устанавливает `audible_distance_modifier` для спикера если указан
+    - Возвращает: обьект эмиттера который был добавлен в data.raw

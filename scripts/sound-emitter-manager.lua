@@ -6,7 +6,7 @@ local validStatuses = {
     defines.entity_status.low_power
 }
 
-local parentName = 'sound-emitter'
+local parentName = settings.startup["fssm-parent_name"].value
 
 local function debugMsg(text)
     if startup["fssm-debug"].value then
@@ -100,7 +100,7 @@ local function on_entity_create(event, dontCheck)
     end
     if itsRightEntity(entity.name, dontCheck) then
         debugMsg('detect new entity(or update) '..coordinateFormat(entity))
-        surface.create_entity{name = "sound-emitter"..'__'..entity.name, position = entity.position}
+        surface.create_entity{name = parentName..'__'..entity.name, position = entity.position}
         switchStateInGlobTable(entity.position, surface.name, true, true)
         --table.insert(global.entities_positions.enabled[entity.surface.name], entity.position)
     end
@@ -280,8 +280,11 @@ commands.add_command("fssm-reinit", {"description.command-reinit"}, on_init)
 script.on_init(on_init)
 script.on_load(function (...)
     debugMsg("on_load")
-    setup_events()
-    log()
+    if type(global.event_filters) == "table" then
+        setup_events()
+    else
+        log("event filters not initialized")
+    end
 end)
 script.on_nth_tick(60, emitters_update)
 script.on_configuration_changed(on_configuration_changed)
