@@ -77,13 +77,13 @@ local function switchStateInGlobTable(position, surface, newstate, isnew)
     end
 end
 
-local function on_entity_create(event, dontCheck)
-    debugMsg("on_entity_create")
+local function on_entity_create_event(event, dontCheck)
+    debugMsg("on_entity_create_event")
     local entity = event.created_entity
     local surface = entity.surface
     --just to be sure
     if not entity or not entity.valid then
-        debugMsg('on_entity_create entity not valid!')
+        debugMsg('on_entity_create_event entity not valid!')
         return
     end
     --make sure we are not in "update mode", dontCheck is only true when called manually
@@ -106,7 +106,7 @@ local function on_entity_create(event, dontCheck)
     end
 end
 
-local function on_entity_delete(event)
+local function on_entity_delete_event(event)
     --sometimes this event call without entity row(e.g. if it was beam)
     debugMsg("on_entity_delete")
     if not event.entity or not event.entity.valid then
@@ -125,14 +125,31 @@ local function on_entity_delete(event)
     end
 end
 
+local function get_trycatch_protect(func)
+    if not settings.startup["fssm-enable-runtime-protect"].value then
+        return func
+    end
+    return function(event)
+        local success, err = pcall(func, event)
+        if not success then
+            if game and game.print then
+                game.print(err)
+            end
+            log(err)
+        end
+    end
+end
+
 local function setup_events()
     debugMsg("setup_events")
     local filters = global.event_filters
     assert(type(filters) == "table", "event filters not initialized")
 
+    local on_entity_create = get_trycatch_protect(on_entity_create_event)
     script.on_event(defines.events.on_built_entity, on_entity_create, filters)
     script.on_event(defines.events.on_robot_built_entity, on_entity_create, filters)
 
+    local on_entity_delete = get_trycatch_protect(on_entity_delete_event)
     script.on_event(defines.events.on_entity_died, on_entity_delete, filters)
     script.on_event(defines.events.on_entity_destroyed, on_entity_delete)
     script.on_event(defines.events.on_player_mined_entity, on_entity_delete, filters)
@@ -157,14 +174,12 @@ local function on_init()
     local protoPrefix = "^" .. parentName:gsub("-", "%%-")..'__'
 
     --find right prototypes
-    local i = 1
     for protoName, value in pairs(game.entity_prototypes) do
         if string.find(protoName, protoPrefix) then
             --the only reason why I'm looking for emitters is to make sure that I don't desync with the data stage
             local entity = string.sub(protoName, #(parentName..'%__'))
-            global.used_prototypes[i] = entity
+            table.insert(global.used_prototypes, entity)
             table.insert(global.event_filters, {filter = "name", name = entity})
-            i = i + 1
         end
     end
     for _, surface in pairs(game.surfaces) do
@@ -181,13 +196,13 @@ local function on_init()
         end
         --find all machines and create emitter for it
         for _, protoName in pairs(global.used_prototypes) do
-            local workMachines = surface.find_entities_filtered{type = proto_type, name = protoName}
+            local workMachines = surface.find_entities_filtered{name = protoName}
             if #workMachines > 0 then
                 debugMsg('found '..tostring(#workMachines)..' machines')
                 for _, machine in pairs(workMachines) do
                     local pseudoEvent = {}
                     pseudoEvent['created_entity'] = machine
-                    on_entity_create(pseudoEvent, true)
+                    on_entity_create_event(pseudoEvent, true)
                 end
             end
         end
@@ -235,7 +250,7 @@ local function emitters_update(event)
             local emmiters = surface.find_entities_filtered{type = emitter_type, name = parentName..'__'..protoName}
             if #emmiters > 0 then
                 for _, emitter in pairs(emmiters) do
-                    local machines = surface.find_entities_filtered{type = proto_type, position = emitter.position}
+                    local machines = surface.find_entities_filtered{name = protoName, position = emitter.position}
                     if #machines == 1 and itsRightEntity(machines[1].name) then
                         local machine = machines[1]
                         if not isStatusIsWorking(machine.status) then
@@ -251,14 +266,14 @@ local function emitters_update(event)
             end
             --double processing is certainly bad, but copying tables is even worse
             for i, position in pairs(disabled_entities_positions) do
-                local machines = surface.find_entities_filtered{type = proto_type, position = position}
+                local machines = surface.find_entities_filtered{name = protoName, position = position}
                 if #machines == 1 and itsRightEntity(machines[1].name) then
                     local machine = machines[1]
                     if isStatusIsWorking(machine.status) then
                         debugMsg('restore emitter for machine '..coordinateFormat(machine))
                         local pseudoEvent = {}
                         pseudoEvent['created_entity'] = machine
-                        on_entity_create(pseudoEvent, true)
+                        on_entity_create_event(pseudoEvent, true)
                         disabled_entities_positions[i] = nil
                     end
                 end
@@ -275,16 +290,16 @@ local function on_configuration_changed()
     on_init()   --In general this is not necessary, but I want to make sure that unserviced machines do not appear
 end
 
-commands.add_command("fssm-reinit", {"description.command-reinit"}, on_init)
+commands.add_command("fssm-reinit", {"description.command-reinit"}, get_trycatch_protect(on_init))
 
-script.on_init(on_init)
-script.on_load(function (...)
+script.on_init(get_trycatch_protect(on_init))
+script.on_load(get_trycatch_protect(function (...)
     debugMsg("on_load")
     if type(global.event_filters) == "table" then
         setup_events()
     else
         log("event filters not initialized")
     end
-end)
-script.on_nth_tick(60, emitters_update)
-script.on_configuration_changed(on_configuration_changed)
+end))
+script.on_nth_tick(60, get_trycatch_protect(emitters_update))
+script.on_configuration_changed(get_trycatch_protect(on_configuration_changed))

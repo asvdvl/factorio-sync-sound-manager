@@ -28,4 +28,11 @@ data:extend({
         default_value = true,
         order = "fa"
     },
+    {
+        type = "bool-setting",
+        name = "fssm-enable-runtime-protect",
+        setting_type = "startup",
+        default_value = false,
+        order = "fb"
+    },
 })
