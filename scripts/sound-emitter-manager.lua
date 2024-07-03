@@ -1,11 +1,7 @@
 local startup = settings.startup
-local emitter_type = "simple-entity"
-local validStatuses = {
-    defines.entity_status.working,
-    defines.entity_status.normal,
-    defines.entity_status.low_power
-}
+local table = require('__stdlib__/stdlib/utils/table')
 
+local emitter_type = "simple-entity"
 local parentName = settings.startup["fssm-parent_name"].value
 
 local function debugMsg(text)
@@ -25,18 +21,14 @@ local function coordinateFormat(entity)
 end
 
 local function itsRightEntity(name, dontCheck)
-    local itsRightEntity = false
-    if not dontCheck then
-        --make shure that expected entity
-        for _, protoName in pairs(global.used_prototypes) do
-            if name == protoName then
-                itsRightEntity = true
-            end
-        end
-    else
-        itsRightEntity = true
+    if dontCheck then
+        return true
     end
-    return itsRightEntity
+
+    --make shure that expected entity
+    if global.used_prototypes[name] then
+        return true
+    end
 end
 
 local function switchStateInGlobTableFind(entities_positions, position)
@@ -177,14 +169,14 @@ local function on_init()
     for protoName, value in pairs(game.entity_prototypes) do
         if string.find(protoName, protoPrefix) then
             --the only reason why I'm looking for emitters is to make sure that I don't desync with the data stage
-            local entity = string.sub(protoName, #(parentName..'%__'))
-            table.insert(global.used_prototypes, entity)
-            table.insert(global.event_filters, {filter = "name", name = entity})
+            local entity_name = string.sub(protoName, #(parentName..'%__'))
+            global.used_prototypes[entity_name] = 1
+            table.insert(global.event_filters, {filter = "name", name = entity_name})
         end
     end
     for _, surface in pairs(game.surfaces) do
         --destroy all emitters
-        for _, protoName in pairs(global.used_prototypes) do
+        for protoName in pairs(global.used_prototypes) do
             local emmiters = surface.find_entities_filtered{type = emitter_type, name = parentName..'__'..protoName}
             if #emmiters > 0 then
                 debugMsg('found '..tostring(#emmiters)..' emitters')
@@ -195,7 +187,7 @@ local function on_init()
             end
         end
         --find all machines and create emitter for it
-        for _, protoName in pairs(global.used_prototypes) do
+        for protoName in pairs(global.used_prototypes) do
             local workMachines = surface.find_entities_filtered{name = protoName}
             if #workMachines > 0 then
                 debugMsg('found '..tostring(#workMachines)..' machines')
@@ -230,13 +222,17 @@ local function validateGlobalTable()
 end
 
 --shoud return true if entity working(working, normal, low_power, etc)
+local validStatuses = {
+    defines.entity_status.working,
+    defines.entity_status.normal,
+    defines.entity_status.low_power
+}
+table.array_to_dictionary(validStatuses, true)
+
 local function isStatusIsWorking(machineStatus)
-    for _, status in pairs(validStatuses) do
-        if status == machineStatus then
-            return true
-        end
+    if validStatuses[machineStatus] then
+        return true
     end
-    return false
 end
 
 local function emitters_update(event)
@@ -245,7 +241,7 @@ local function emitters_update(event)
     end
     validateGlobalTable()
     for surfaceName, surface in pairs(game.surfaces) do
-        for _, protoName in pairs(global.used_prototypes) do
+        for protoName in pairs(global.used_prototypes) do
             local disabled_entities_positions = global.entities_positions.disabled[surfaceName]
             local emmiters = surface.find_entities_filtered{type = emitter_type, name = parentName..'__'..protoName}
             if #emmiters > 0 then
@@ -303,3 +299,7 @@ script.on_load(get_trycatch_protect(function (...)
 end))
 script.on_nth_tick(60, get_trycatch_protect(emitters_update))
 script.on_configuration_changed(get_trycatch_protect(on_configuration_changed))
+
+if __Profiler then  --a small crutch to get the profiler to work
+    script.on_event(defines.events.on_tick, function () end)
+end
