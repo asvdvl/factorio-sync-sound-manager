@@ -20,6 +20,7 @@ local function coordinateFormat(entity)
     return tostring(entity.surface.name)..':['..tostring(entity.position.x)..', '..tostring(entity.position.y)..']'
 end
 
+-- returns true if the specified entity name in name was found during mod initialization
 local function itsRightEntity(name, dontCheck)
     if dontCheck then
         return true
@@ -31,89 +32,57 @@ local function itsRightEntity(name, dontCheck)
     end
 end
 
-local function switchStateInGlobTableFind(entities_positions, position)
-    for i, position_intable in pairs(entities_positions) do
-        if position_intable.x == position.x and position_intable.y == position.y then
-            return i
-        end
-    end
-    return nil
+local function validateEntity(entity)
+    return entity and entity.valid
 end
 
-local function switchStateInGlobTable(position, surface, newstate, isnew)
-    local ent_pos = global.entities_positions
-
-    local entities_positions_rev = ent_pos.enabled[surface]
-    local entities_positions = ent_pos.disabled[surface]
-    if newstate then
-        entities_positions = ent_pos.enabled[surface]
-        entities_positions_rev = ent_pos.disabled[surface]
-    end
-
-    local ind = switchStateInGlobTableFind(entities_positions, position)
-    local ind_rev = switchStateInGlobTableFind(entities_positions_rev, position)
-    if isnew then
-        if ind then
-            return
-        end
-        if ind_rev then
-            entities_positions_rev[ind_rev] = nil
-        end
-        table.insert(entities_positions_rev, position)
-        return
-    end
-
-    if ind then
-        table.insert(entities_positions_rev, position)
-        entities_positions[ind] = nil
-    end
-end
-
-local function on_entity_create_event(event, dontCheck)
+local function on_entity_create_event(event, dontCheck, emitterUpdateMode)
     debugMsg("on_entity_create_event")
     local entity = event.created_entity
     local surface = entity.surface
+
     --just to be sure
-    if not entity or not entity.valid then
+    if not validateEntity(entity) then
         debugMsg('on_entity_create_event entity not valid!')
         return
     end
+
+    if not itsRightEntity(entity.name, dontCheck) or global.machines[entity.unit_number] and not emitterUpdateMode then
+        return
+    end
+
     --make sure we are not in "update mode", dontCheck is only true when called manually
-    if not dontCheck and settings.global["fssm-sync-machine-state-with-emitter"].value then
-        debugMsg('detect new entity, mark and do nothing now '..coordinateFormat(entity))
-        switchStateInGlobTable(entity.position, surface.name, false, true)
-        --table.insert(global.entities_positions.disabled[entity.surface.name], entity.position)
-        return
+    debugMsg('detect new entity '..coordinateFormat(entity))
+    local emitter
+    if emitterUpdateMode then
+        emitter = surface.create_entity{name = parentName..'__'..entity.name, position = entity.position}
     end
-    --also check that we don’t have an emitter yet
-    local emmiters = surface.find_entities_filtered{type = emitter_type, name = parentName..'__'..entity.name, position = entity.position}
-    if #emmiters > 0 then
-        return
-    end
+    global.machines[entity.unit_number] = {
+        machine = entity,
+        emitter = emitter
+    }
     if itsRightEntity(entity.name, dontCheck) then
         debugMsg('detect new entity(or update) '..coordinateFormat(entity))
-        surface.create_entity{name = parentName..'__'..entity.name, position = entity.position}
-        switchStateInGlobTable(entity.position, surface.name, true, true)
-        --table.insert(global.entities_positions.enabled[entity.surface.name], entity.position)
     end
 end
 
-local function on_entity_delete_event(event)
+local function on_entity_delete_event(event, emitterUpdateMode)
     --sometimes this event call without entity row(e.g. if it was beam)
     debugMsg("on_entity_delete")
     if not event.entity or not event.entity.valid then
         debugMsg('on_entity_delete entity not valid!')
         return
     end
-    if itsRightEntity(event.entity.name) then
-        local entity = event.entity
-        local surface = entity.surface
-        local emmiters = surface.find_entities_filtered{type = emitter_type, name = parentName..'__'..entity.name, position = entity.position}
-        for _, entity in pairs(emmiters) do
-            debugMsg('destroy '..coordinateFormat(entity))
-            entity.destroy()
+    local entity = event.entity
+    if itsRightEntity(event.entity.name) and global.machines[entity.unit_number] then
+        local machine = global.machines[entity.unit_number]
+        debugMsg('destroy '..coordinateFormat(entity))
+        machine.emitter.destroy()
+        if emitterUpdateMode then
+            global.machines[entity.unit_number].emitter = nil
+        else
+            global.machines[entity.unit_number] = nil
         end
-        switchStateInGlobTable(entity.position, surface.name, false, true)
     end
 end
 
@@ -137,15 +106,24 @@ local function setup_events()
     local filters = global.event_filters
     assert(type(filters) == "table", "event filters not initialized")
 
-    local on_entity_create = get_trycatch_protect(on_entity_create_event)
-    script.on_event(defines.events.on_built_entity, on_entity_create, filters)
-    script.on_event(defines.events.on_robot_built_entity, on_entity_create, filters)
+    local e = defines.events
+    for _, event_name in pairs({e.on_built_entity, e.on_robot_built_entity, e.script_raised_revive, e.script_raised_built}) do
+        script.on_event(
+            event_name,
+            get_trycatch_protect(on_entity_create_event),
+            filters
+        )
+    end
 
-    local on_entity_delete = get_trycatch_protect(on_entity_delete_event)
-    script.on_event(defines.events.on_entity_died, on_entity_delete, filters)
-    script.on_event(defines.events.on_entity_destroyed, on_entity_delete)
-    script.on_event(defines.events.on_player_mined_entity, on_entity_delete, filters)
-    script.on_event(defines.events.on_robot_mined_entity, on_entity_delete, filters)
+    local delete_list = {e.on_entity_died, e.on_entity_destroyed, e.on_player_mined_entity, e.on_robot_mined_entity, e.script_raised_destroy}
+    not_needed_filter = table.array_to_dictionary({e.on_entity_destroyed}, true)
+    for _, event_name in pairs(delete_list) do
+        script.on_event(
+            event_name,
+            get_trycatch_protect(on_entity_delete_event),
+            (not not_needed_filter[event_name] and filters) or nil
+        )
+    end
 end
 
 local function on_init()
@@ -155,16 +133,11 @@ local function on_init()
 
     global.event_filters = {}
 
-    global.entities_positions = {}
-    global.entities_positions.enabled = {}
-    global.entities_positions.disabled = {}
+    ---@alias unti_number number
+    ---@type table<unti_number, {machine: table, emitter: table}>
+    global.machines = {}
 
-    for surfaceName, _ in pairs(game.surfaces) do
-        global.entities_positions.enabled[surfaceName] = {}
-        global.entities_positions.disabled[surfaceName] = {}
-    end
     local protoPrefix = "^" .. parentName:gsub("-", "%%-")..'__'
-
     --find right prototypes
     for protoName, value in pairs(game.entity_prototypes) do
         if string.find(protoName, protoPrefix) then
@@ -186,6 +159,7 @@ local function on_init()
                 end
             end
         end
+
         --find all machines and create emitter for it
         for protoName in pairs(global.used_prototypes) do
             local workMachines = surface.find_entities_filtered{name = protoName}
@@ -211,11 +185,7 @@ end
 
 local function validateGlobalTable()
     --check that table is wrong
-    if not global.used_prototypes or
-        not global.entities_positions or
-        not global.entities_positions.enabled or
-        not global.entities_positions.disabled
-    then
+    if not global.used_prototypes or not global.machines then
         debugMsg('global table not valid')
         on_init()
     end
@@ -227,7 +197,7 @@ local validStatuses = {
     defines.entity_status.normal,
     defines.entity_status.low_power
 }
-table.array_to_dictionary(validStatuses, true)
+validStatuses = table.array_to_dictionary(validStatuses, true)
 
 local function isStatusIsWorking(machineStatus)
     if validStatuses[machineStatus] then
@@ -240,39 +210,26 @@ local function emitters_update(event)
         return
     end
     validateGlobalTable()
-    for surfaceName, surface in pairs(game.surfaces) do
-        for protoName in pairs(global.used_prototypes) do
-            local disabled_entities_positions = global.entities_positions.disabled[surfaceName]
-            local emmiters = surface.find_entities_filtered{type = emitter_type, name = parentName..'__'..protoName}
-            if #emmiters > 0 then
-                for _, emitter in pairs(emmiters) do
-                    local machines = surface.find_entities_filtered{name = protoName, position = emitter.position}
-                    if #machines == 1 and itsRightEntity(machines[1].name) then
-                        local machine = machines[1]
-                        if not isStatusIsWorking(machine.status) then
-                            debugMsg('detect stopped machine '..coordinateFormat(machine))
-                            table.insert(disabled_entities_positions, emitter.position)
-                            emitter.destroy()
-                        end
-                    else
-                        debugMsg('An emitter was found that was not assigned to the machine (was destroyed?), '..coordinateFormat(emitter))
-                        emitter.destroy()
-                    end
-                end
+
+    local machines = global.machines
+
+    for _, value in pairs(machines) do
+        local machine = value.machine
+        local emitter = value.emitter
+
+        if isStatusIsWorking(machine.status) then
+            if not emitter then
+                debugMsg('restore emitter for machine '..coordinateFormat(machine))
+                local pseudoEvent = {}
+                pseudoEvent['created_entity'] = machine
+                on_entity_create_event(pseudoEvent, true, true)
             end
-            --double processing is certainly bad, but copying tables is even worse
-            for i, position in pairs(disabled_entities_positions) do
-                local machines = surface.find_entities_filtered{name = protoName, position = position}
-                if #machines == 1 and itsRightEntity(machines[1].name) then
-                    local machine = machines[1]
-                    if isStatusIsWorking(machine.status) then
-                        debugMsg('restore emitter for machine '..coordinateFormat(machine))
-                        local pseudoEvent = {}
-                        pseudoEvent['created_entity'] = machine
-                        on_entity_create_event(pseudoEvent, true)
-                        disabled_entities_positions[i] = nil
-                    end
-                end
+        else
+            if emitter then
+                debugMsg('detect stopped machine '..coordinateFormat(machine))
+                local pseudoEvent = {}
+                pseudoEvent['entity'] = machine
+                on_entity_delete_event(pseudoEvent, true)
             end
         end
     end

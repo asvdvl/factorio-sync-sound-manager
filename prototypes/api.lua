@@ -45,6 +45,7 @@ function api.registerPrototype(proto)
     clog('clone emitter for '..proto.name)
 
     local parent = data.raw["simple-entity"][get_setting("parent_name")]
+    assert(parent, "The parent sound emitter is not initialized!")
     local soundEmitterCopy = table.deepcopy(parent)
     soundEmitterCopy.name = soundEmitterCopy.name..'__'..proto.name
 
