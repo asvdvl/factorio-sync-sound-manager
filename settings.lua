@@ -29,6 +29,20 @@ data:extend({
         order = "fa"
     },
     {
+        type = "int-setting",
+        name = "fssm-limit-of-checks",
+        setting_type = "runtime-global",
+        default_value = 100,
+        order = "faa"
+    },
+    {
+        type = "int-setting",
+        name = "fssm-limit-of-actions",
+        setting_type = "runtime-global",
+        default_value = 10,
+        order = "fab"
+    },
+    {
         type = "bool-setting",
         name = "fssm-enable-runtime-protect",
         setting_type = "startup",

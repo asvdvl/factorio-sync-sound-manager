@@ -223,8 +223,8 @@ local function emitters_update(event)
 
     local machines = global.machines
 
-    local limit_checks = 100
-    local limit_of_actions = 10
+    local limit_checks = settings.global["fssm-limit-of-checks"].value
+    local limit_of_actions = settings.global["fssm-limit-of-actions"].value
 
     local next_key, _, reached_end = flib_table.for_n_of(machines, global.update_index, limit_checks,
     function (value, key)
