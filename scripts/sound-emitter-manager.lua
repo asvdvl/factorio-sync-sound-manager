@@ -1,20 +1,23 @@
 local startup = settings.startup
 local table = require('__stdlib__/stdlib/utils/table')
+local flib_table = require("__flib__.table")
 
 local emitter_type = "simple-entity"
 local parentName = settings.startup["fssm-parent_name"].value
 
-local function debugMsg(text)
-    if startup["fssm-debug"].value then
+local debugMsg
+if startup["fssm-debug"].value then
+    function debugMsg(text)
         if game then
             game.print(text)
         end
         log(text..'\n')
-    else
-        --I hope this is only temporary here, because in my opinion, clogging up the logs just isn’t a good idea.
-        log(text..'\n')
     end
+else
+    --I hope this is only temporary here, because in my opinion, clogging up the logs just isn’t a good idea.
+    debugMsg = log
 end
+
 
 local function coordinateFormat(entity)
     return tostring(entity.surface.name)..':['..tostring(entity.position.x)..', '..tostring(entity.position.y)..']'
@@ -66,6 +69,10 @@ local function on_entity_create_event(event, dontCheck, emitterUpdateMode)
     end
 end
 
+---comment
+---@param event any
+---@param emitterUpdateMode boolean means that we should keep machine in table and work with emitter
+---@return boolean? dont_touch_machine is true if event.dont_touch_machine, according flib_table.for_n_of i should return true if i want delete machine
 local function on_entity_delete_event(event, emitterUpdateMode)
     --sometimes this event call without entity row(e.g. if it was beam)
     debugMsg("on_entity_delete")
@@ -81,6 +88,9 @@ local function on_entity_delete_event(event, emitterUpdateMode)
         if emitterUpdateMode then
             global.machines[entity.unit_number].emitter = nil
         else
+            if event.dont_touch_machine then
+                return true
+            end
             global.machines[entity.unit_number] = nil
         end
     end
@@ -130,7 +140,6 @@ local function on_init()
     --glob table init
     debugMsg("on_init")
     global.used_prototypes = {}
-
     global.event_filters = {}
 
     ---@alias unti_number number
@@ -203,6 +212,7 @@ local function isStatusIsWorking(machineStatus)
     if validStatuses[machineStatus] then
         return true
     end
+    return false
 end
 
 local function emitters_update(event)
@@ -213,9 +223,14 @@ local function emitters_update(event)
 
     local machines = global.machines
 
-    for _, value in pairs(machines) do
+    local limit_checks = 100
+    local limit_of_actions = 10
+
+    local next_key, _, reached_end = flib_table.for_n_of(machines, global.update_index, limit_checks,
+    function (value, key)
         local machine = value.machine
         local emitter = value.emitter
+        local delete_current_item = false
 
         if isStatusIsWorking(machine.status) then
             if not emitter then
@@ -223,15 +238,23 @@ local function emitters_update(event)
                 local pseudoEvent = {}
                 pseudoEvent['created_entity'] = machine
                 on_entity_create_event(pseudoEvent, true, true)
+                limit_of_actions = limit_of_actions - 1
             end
-        else
-            if emitter then
-                debugMsg('detect stopped machine '..coordinateFormat(machine))
-                local pseudoEvent = {}
-                pseudoEvent['entity'] = machine
-                on_entity_delete_event(pseudoEvent, true)
-            end
+        elseif emitter then
+            debugMsg('detect stopped machine '..coordinateFormat(machine))
+            local pseudoEvent = {}
+            pseudoEvent['entity'] = machine
+            pseudoEvent['dont_touch_machine'] = true
+            delete_current_item = on_entity_delete_event(pseudoEvent, true) or false
+            limit_of_actions = limit_of_actions - 1
         end
+
+        return nil, delete_current_item, limit_of_actions <= 0
+    end)
+    if reached_end then
+        global.update_index = nil
+    else
+        global.update_index = next_key
     end
 end
 
@@ -254,9 +277,5 @@ script.on_load(get_trycatch_protect(function (...)
         log("event filters not initialized")
     end
 end))
-script.on_nth_tick(60, get_trycatch_protect(emitters_update))
+script.on_event(defines.events.on_tick, get_trycatch_protect(emitters_update))
 script.on_configuration_changed(get_trycatch_protect(on_configuration_changed))
-
-if __Profiler then  --a small crutch to get the profiler to work
-    script.on_event(defines.events.on_tick, function () end)
-end
