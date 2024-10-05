@@ -5,7 +5,7 @@ local flib_table = require("__flib__.table")
 local emitter_type = "simple-entity"
 local parentName = settings.startup["fssm-parent_name"].value
 
-local debugMsg
+local debugMsg = function ()end
 if startup["fssm-debug"].value then
     function debugMsg(text)
         if game then
@@ -13,9 +13,6 @@ if startup["fssm-debug"].value then
         end
         log(text..'\n')
     end
-else
-    --I hope this is only temporary here, because in my opinion, clogging up the logs just isn’t a good idea.
-    debugMsg = log
 end
 
 
@@ -40,7 +37,6 @@ local function validateEntity(entity)
 end
 
 local function on_entity_create_event(event, dontCheck, emitterUpdateMode)
-    debugMsg("on_entity_create_event")
     local entity = event.created_entity
     local surface = entity.surface
 
@@ -55,7 +51,6 @@ local function on_entity_create_event(event, dontCheck, emitterUpdateMode)
     end
 
     --make sure we are not in "update mode", dontCheck is only true when called manually
-    debugMsg('detect new entity '..coordinateFormat(entity))
     local emitter
     if emitterUpdateMode then
         emitter = surface.create_entity{name = parentName..'__'..entity.name, position = entity.position}
@@ -64,18 +59,13 @@ local function on_entity_create_event(event, dontCheck, emitterUpdateMode)
         machine = entity,
         emitter = emitter
     }
-    if itsRightEntity(entity.name, dontCheck) then
-        debugMsg('detect new entity(or update) '..coordinateFormat(entity))
-    end
 end
 
----comment
 ---@param event any
 ---@param emitterUpdateMode boolean means that we should keep machine in table and work with emitter
 ---@return boolean? dont_touch_machine is true if event.dont_touch_machine, according flib_table.for_n_of i should return true if i want delete machine
 local function on_entity_delete_event(event, emitterUpdateMode)
     --sometimes this event call without entity row(e.g. if it was beam)
-    debugMsg("on_entity_delete")
     if not event.entity or not event.entity.valid then
         debugMsg('on_entity_delete entity not valid!')
         return
@@ -83,10 +73,12 @@ local function on_entity_delete_event(event, emitterUpdateMode)
     local entity = event.entity
     if itsRightEntity(event.entity.name) and global.machines[entity.unit_number] then
         local machine = global.machines[entity.unit_number]
-        debugMsg('destroy '..coordinateFormat(entity))
-        machine.emitter.destroy()
+
+        if machine.emitter and machine.emitter.valid then
+            machine.emitter.destroy()
+        end
         if emitterUpdateMode then
-            global.machines[entity.unit_number].emitter = nil
+            machine.emitter = nil
         else
             if event.dont_touch_machine then
                 return true
@@ -175,6 +167,7 @@ local function on_init()
             if #workMachines > 0 then
                 debugMsg('found '..tostring(#workMachines)..' machines')
                 for _, machine in pairs(workMachines) do
+                    debugMsg('create emitter '..coordinateFormat(machine))
                     local pseudoEvent = {}
                     pseudoEvent['created_entity'] = machine
                     on_entity_create_event(pseudoEvent, true)
@@ -249,8 +242,12 @@ local function emitters_update(event)
             limit_of_actions = limit_of_actions - 1
         end
 
+        if limit_of_actions <= 0 then
+            debugMsg("stop updates with fully used budget in limit_of_actions")
+        end
         return nil, delete_current_item, limit_of_actions <= 0
     end)
+
     if reached_end then
         global.update_index = nil
     else

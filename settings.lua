@@ -32,14 +32,14 @@ data:extend({
         type = "int-setting",
         name = "fssm-limit-of-checks",
         setting_type = "runtime-global",
-        default_value = 100,
+        default_value = 5000,
         order = "faa"
     },
     {
         type = "int-setting",
         name = "fssm-limit-of-actions",
         setting_type = "runtime-global",
-        default_value = 10,
+        default_value = 500,
         order = "fab"
     },
     {

@@ -2,12 +2,24 @@
 
 [ru desctiption](https://github.com/asvdvl/factorio-sync-sound-manager/blob/master/README.ru.md)
 
+## Description
+- This is a core, not a full-fledged mod, and does nothing [without add-ons](https://mods.factorio.com/mod/factorio-sync-sound-manager/dependencies?direction=in&sort=idx&filter=required)!
+- Synchronizes sound between identical machines; unfortunately, the mod is heavy on performance. Check the `Settings` section to adjust the limitations.
+
 ## Settings
-All settings actually start with `fssm-`.
-- `use simple sound system`(`use_simple_sound_system`): Don't create ghost entities for sync playing sound.
-- `debug`: Enable event and activity logging.
-- `sync-machine-state-with-emitter`: If enabled, the mod will poll all machines once a second about their status (running/stopped) and, depending on the option, turn on/off the emitter. If you find that this slows down your game, then turn off this setting. The mod does nothing else except check and control.
-- (hidden)`fssm-parent_name`: internal name of the parent emitter
+All settings start with `fssm-`.
+Here is the translation of the first setting:
+
+- `synchronize machine state with emitter` (`sync-machine-state-with-emitter`): If enabled, the mod will poll all machines that may have an emitter every tick to check their state (running/stopped) and, depending on the settings, "turn on"/"turn off" the emitter. If you believe this slows down the game, disable this setting. The mod does nothing else besides checking and managing the emitters.
+- `limit of state checks` (`limit-of-checks`): Specifies how many machines will be checked per tick. By default, it's set to 5000, chosen to take 8ms per tick (50% of tick time) on my hardware in vanilla.
+- `limit of emitter updates` (`limit-of-actions`): Specifies how many entities will be created/destroyed per tick. By default, it's set to 500, calculated similarly to the value above.
+- `Use simple sound system` (`use_simple_sound_system`): Do not create ghost entities for synchronized sound playback. In this case, the machines themselves will play the synchronized sound.
+- `debug mode` (`debug`): Enables logging of events and actions.
+- (hidden) `fssm-parent_name`: internal name of the parent emitter.
+
+## Terms
+- **Emitter**: An entity that plays sound. The mod creates or removes these based on the machine's status.
+- **Machine**: An entity under which the emitter is created. It can be anything, such as an assembler, lab, miner, etc.
 
 ## API - data stage
 requiring:
