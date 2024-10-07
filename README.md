@@ -21,6 +21,9 @@ Here is the translation of the first setting:
 - **Emitter**: An entity that plays sound. The mod creates or removes these based on the machine's status.
 - **Machine**: An entity under which the emitter is created. It can be anything, such as an assembler, lab, miner, etc.
 
+## Commands
+- `/fssm-reinit`: removes and re-arranges all emitters.
+
 ## API - data stage
 requiring:
 ```lua
@@ -36,6 +39,9 @@ fssm.applyNewSound(data.raw["assembling-machine"]["assembling-machine-1"], "__my
 
 -- just the registration of the entity
 fssm.registerPrototype(proto)
+
+-- if you want to check that there is a mod at all/is on.
+if settings.startup["fssm-parent_name"] then
 ```
 - `fssm.applyNewSound(proto, sound_path, volume)`:
     - Applies sound to the prototype(replaces with the specified), also calls `registerPrototype(proto)`.

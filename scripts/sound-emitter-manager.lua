@@ -180,6 +180,7 @@ local function on_init()
     game.print('Hello, thanks for installing my mod(factorio sync sound manager)!\n'..
         'I want to warn you that this is my first mod executed in a runtime environment,\n'..
         'if you experience problems with crashes/slowdowns,\n'..
+        'firstly, you can try to reduce the number of checks/actions in the settings, if it does not help,\n'..
         'then in this case I left the option of partial (settings - runtime - '..tostring({"mod-setting-name.fssm-sync-machine-state-with-emitter"})..')'..
         'and full (settings - startup - '..tostring({"mod-setting-name.fssm-use_simple_sound_system"})..
         ') disabling code running in the world (the mod will still work, but without some features)')

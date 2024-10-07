@@ -1,4 +1,15 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.1.0
+Date: 2024-10-07
+  Features:
+    - Sync sound between one type of entity.
+    - Limits for runtime thats help not to nuke game.
+  Scripting:
+    - Api functions on data stage: applyNewSound registerPrototype
+  Locale:
+    - En
+    - Ru
+---------------------------------------------------------------------------------------------------
 Version: 0.0.1
 Date: 2024-06-02
   Info:
