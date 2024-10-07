@@ -8,7 +8,6 @@
 
 ## Settings
 All settings start with `fssm-`.
-Here is the translation of the first setting:
 
 - `synchronize machine state with emitter` (`sync-machine-state-with-emitter`): If enabled, the mod will poll all machines that may have an emitter every tick to check their state (running/stopped) and, depending on the settings, "turn on"/"turn off" the emitter. If you believe this slows down the game, disable this setting. The mod does nothing else besides checking and managing the emitters.
 - `limit of state checks` (`limit-of-checks`): Specifies how many machines will be checked per tick. By default, it's set to 5000, chosen to take 8ms per tick (50% of tick time) on my hardware in vanilla.
@@ -17,19 +16,19 @@ Here is the translation of the first setting:
 - `debug mode` (`debug`): Enables logging of events and actions.
 - (hidden) `fssm-parent_name`: internal name of the parent emitter.
 
+## Commands
+- `/fssm-reinit`: removes and re-arranges all emitters.
+
 ## Terms
 - **Emitter**: An entity that plays sound. The mod creates or removes these based on the machine's status.
 - **Machine**: An entity under which the emitter is created. It can be anything, such as an assembler, lab, miner, etc.
-
-## Commands
-- `/fssm-reinit`: removes and re-arranges all emitters.
 
 ## API - data stage
 requiring:
 ```lua
 local fssm = require("__factorio-sync-sound-manager__/prototypes/api")
 ```
-examples:
+Examples:
 ```lua
 -- changing the sound for a particular entity.
 fssm.applyNewSound(data.raw["assembling-machine"]["assembling-machine-1"], "__my-mod__/my-sound.ogg")
@@ -62,3 +61,7 @@ if settings.startup["fssm-parent_name"] then
         - `proto`: any entity from data.raw.
         - (hidden, in the object properties)`proto.working_sound.speacker_audible_distance_modifier`: sets the `audible_distance_modifier` for the speaker if specified
     - Returns: the emitter object that was added to data.raw
+
+## API - runtime stage
+In the following releases
+Note: at the moment, the mod determines whether the emitter is needed based on the condition of the machine: works/not active, under the Runtime API, I mean the transfer of the "activation" function for configuration as you need.

@@ -226,6 +226,10 @@ local function emitters_update(event)
         local emitter = value.emitter
         local delete_current_item = false
 
+        if not machine.valid then
+            return nil, false, false
+        end
+
         if isStatusIsWorking(machine.status) then
             if not emitter then
                 debugMsg('restore emitter for machine '..coordinateFormat(machine))
