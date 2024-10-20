@@ -40,7 +40,15 @@ fssm.applyNewSound(data.raw["assembling-machine"]["assembling-machine-1"], "__my
 fssm.registerPrototype(proto)
 
 -- если вы хотитие проверить что мод вообще есть/включен.
+---- data/runtime стадия
 if settings.startup["fssm-parent_name"] then
+    --code
+end
+
+---- settings стадия
+if data.raw and data.raw["string-setting"] and data.raw["string-setting"]["fssm-parent_name"] then
+    --code
+end
 ```
 - `fssm.applyNewSound(proto, sound_path, volume)`:
     - Применяет звук к прототипу (заменяет на указанный), также вызывает `registerPrototype(proto)`.
