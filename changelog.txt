@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.1.1
+Date: 2024-10-20
+  Bugfixes:
+    - emitter is now always square for non-square machines (minimum sides are selected), factorio does not allow to set rotation for simple entities
+---------------------------------------------------------------------------------------------------
 Version: 0.1.0
 Date: 2024-10-07
   Features:

@@ -13,6 +13,12 @@ if get_setting("debug") then
     clog = log
 end
 
+local function correct_boxes(box)
+    local min_value = math.max(box[1][1], box[1][2])
+    local pls_value = math.min(box[2][1], box[2][2])
+    return {{min_value, min_value}, {pls_value, pls_value}}
+end
+
 clog('required post process api')
 
 function api.applyNewSound(proto, sound_path, volume)
@@ -56,8 +62,8 @@ function api.registerPrototype(proto)
     soundEmitterCopy.working_sound = table.deepcopy(proto.working_sound)
     soundEmitterCopy.working_sound.audible_distance_modifier = proto.working_sound.speacker_audible_distance_modifier or parent.working_sound.audible_distance_modifier
     soundEmitterCopy.working_sound.persistent = true    --in case if origin not modified this param
-    soundEmitterCopy.selection_box = proto.selection_box or parent.selection_box
-    soundEmitterCopy.collision_box = proto.collision_box or parent.collision_box
+    soundEmitterCopy.selection_box = proto.selection_box and correct_boxes(proto.selection_box) or parent.selection_box
+    soundEmitterCopy.collision_box = proto.collision_box and correct_boxes(proto.collision_box) or parent.collision_box
 
     data:extend{soundEmitterCopy}
     return soundEmitterCopy

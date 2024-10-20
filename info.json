@@ -3,7 +3,7 @@
     "name": "factorio-sync-sound-manager",
     "author": "asvdev(in game - Dial-up)",
     "factorio_version": "1.1",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "dependencies": ["base >= 1.1.0", "flib >= 0.4.1", "stdlib"],
     "description": "synchronous playback of sounds and music for the entity",
     "homepage": "https://github.com/asvdvl/factorio-sync-sound-manager",
