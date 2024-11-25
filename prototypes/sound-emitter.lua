@@ -21,7 +21,7 @@ data:extend
 
         selection_box = {{-0.5, -0.5}, {0.5, 0.5}},
         collision_box = {{-0.5, -0.5}, {0.5, 0.5}},
-        collision_mask = {},
+        collision_mask = {layers={}},
 
         alert_when_damaged = false,
         create_ghost_on_death = false,
@@ -32,17 +32,12 @@ data:extend
         },
 
         flags = {
-            "placeable-neutral",
-            "placeable-player",
             "not-deconstructable",
             "not-blueprintable",
             "not-rotatable",
-            --"placeable-off-grid",
-            --"not-repairable",
             "not-on-map",
             "not-blueprintable",
             "not-deconstructable",
-            "hidden",
             "hide-alt-info",
             "not-flammable",
             "no-automated-item-removal",
@@ -53,7 +48,7 @@ data:extend
         picture =
         {
             filename = icon,
-            priority = "extra-high",
+            priority = "no-atlas",
             width = 64,
             height = 64,
             scale = 0.5,
