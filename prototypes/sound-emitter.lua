@@ -2,12 +2,12 @@ if settings.startup["fssm-debug"].value then
     log('creating sound emitter prototype')
 end
 local icon = "__base__/graphics/icons/programmable-speaker.png"
-local enitter_name = settings.startup["fssm-parent_name"].value
+local emitter_name = settings.startup["fssm-parent_name"].value
 data:extend
 {
     {
         type = "simple-entity",
-        name = enitter_name,
+        name = emitter_name,
 
         icon = icon,
         icon_size = 64,
@@ -48,7 +48,7 @@ data:extend
         picture =
         {
             filename = icon,
-            priority = "no-atlas",
+            priority = settings.startup["fssm-debug"].value and "extra-high" or "no-atlas",
             width = 64,
             height = 64,
             scale = 0.5,
@@ -58,7 +58,7 @@ data:extend
 }
 
 for key in pairs(data.raw["damage-type"]) do
-    table.insert(data.raw["simple-entity"][enitter_name].resistances,
+    table.insert(data.raw["simple-entity"][emitter_name].resistances,
     {
         type=key,
         decrease = 0,

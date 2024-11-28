@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.0.0
+Date: 2024-12-01
+  Changes:
+    - ported to 2.0
+    - the emitter should now only be visible when debug is enabled
+    - got rid of stdlib because a: it is not needed for 1 action b: the author abandoned it
+---------------------------------------------------------------------------------------------------
 Version: 0.1.1
 Date: 2024-10-20
   Bugfixes:

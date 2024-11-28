@@ -24,6 +24,7 @@
 - **Машина/машинка**: Сущность, под которой создаётся эмиттер. Это может быть что угодно: ассемблер, лаборатория, майнер и т.д.
 
 ## API - data stage
+проверьте исходники [моего другого мода](https://mods.factorio.com/mod/factorio-synced-labs-sound) если вам нужен пример как реализовать
 requiring:
 ```lua
 local fssm = require("__factorio-sync-sound-manager__/prototypes/api")

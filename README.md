@@ -24,6 +24,7 @@ All settings start with `fssm-`.
 - **Machine**: An entity under which the emitter is created. It can be anything, such as an assembler, lab, miner, etc.
 
 ## API - data stage
+check out the source of [my other mod](https://mods.factorio.com/mod/factorio-synced-labs-sound) if you need an example of how to implement it
 requiring:
 ```lua
 local fssm = require("__factorio-sync-sound-manager__/prototypes/api")
