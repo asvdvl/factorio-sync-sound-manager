@@ -1,5 +1,4 @@
 local startup = settings.startup
-local table = require('__stdlib__/stdlib/utils/table')
 local flib_table = require("__flib__.table")
 
 local emitter_type = "simple-entity"
@@ -27,7 +26,7 @@ local function itsRightEntity(name, dontCheck)
     end
 
     --make shure that expected entity
-    if global.used_prototypes[name] then
+    if storage.used_prototypes[name] then
         return true
     end
 end
@@ -37,7 +36,7 @@ local function validateEntity(entity)
 end
 
 local function on_entity_create_event(event, dontCheck, emitterUpdateMode)
-    local entity = event.created_entity
+    local entity = event.entity
     local surface = entity.surface
 
     --just to be sure
@@ -46,7 +45,7 @@ local function on_entity_create_event(event, dontCheck, emitterUpdateMode)
         return
     end
 
-    if not itsRightEntity(entity.name, dontCheck) or global.machines[entity.unit_number] and not emitterUpdateMode then
+    if not itsRightEntity(entity.name, dontCheck) or storage.machines[entity.unit_number] and not emitterUpdateMode then
         return
     end
 
@@ -55,7 +54,7 @@ local function on_entity_create_event(event, dontCheck, emitterUpdateMode)
     if emitterUpdateMode then
         emitter = surface.create_entity{name = parentName..'__'..entity.name, position = entity.position}
     end
-    global.machines[entity.unit_number] = {
+    storage.machines[entity.unit_number] = {
         machine = entity,
         emitter = emitter
     }
@@ -71,8 +70,8 @@ local function on_entity_delete_event(event, emitterUpdateMode)
         return
     end
     local entity = event.entity
-    if itsRightEntity(event.entity.name) and global.machines[entity.unit_number] then
-        local machine = global.machines[entity.unit_number]
+    if itsRightEntity(event.entity.name) and storage.machines[entity.unit_number] then
+        local machine = storage.machines[entity.unit_number]
 
         if machine.emitter and machine.emitter.valid then
             machine.emitter.destroy()
@@ -83,7 +82,7 @@ local function on_entity_delete_event(event, emitterUpdateMode)
             if event.dont_touch_machine then
                 return true
             end
-            global.machines[entity.unit_number] = nil
+            storage.machines[entity.unit_number] = nil
         end
     end
 end
@@ -105,7 +104,7 @@ end
 
 local function setup_events()
     debugMsg("setup_events")
-    local filters = global.event_filters
+    local filters = storage.event_filters
     assert(type(filters) == "table", "event filters not initialized")
 
     local e = defines.events
@@ -117,8 +116,8 @@ local function setup_events()
         )
     end
 
-    local delete_list = {e.on_entity_died, e.on_entity_destroyed, e.on_player_mined_entity, e.on_robot_mined_entity, e.script_raised_destroy}
-    not_needed_filter = table.array_to_dictionary({e.on_entity_destroyed}, true)
+    local delete_list = {e.on_entity_died, e.on_object_destroyed, e.on_player_mined_entity, e.on_robot_mined_entity, e.script_raised_destroy}
+    not_needed_filter = {[e.on_object_destroyed] = true}
     for _, event_name in pairs(delete_list) do
         script.on_event(
             event_name,
@@ -131,26 +130,26 @@ end
 local function on_init()
     --glob table init
     debugMsg("on_init")
-    global.used_prototypes = {}
-    global.event_filters = {}
+    storage.used_prototypes = {}
+    storage.event_filters = {}
 
     ---@alias unti_number number
     ---@type table<unti_number, {machine: table, emitter: table}>
-    global.machines = {}
+    storage.machines = {}
 
     local protoPrefix = "^" .. parentName:gsub("-", "%%-")..'__'
     --find right prototypes
-    for protoName, value in pairs(game.entity_prototypes) do
+    for protoName, value in pairs(prototypes.entity) do
         if string.find(protoName, protoPrefix) then
-            --the only reason why I'm looking for emitters is to make sure that I don't desync with the data stage
+        --the only reason why I'm looking for emitters is to make sure that I don't desync with the data stage
             local entity_name = string.sub(protoName, #(parentName..'%__'))
-            global.used_prototypes[entity_name] = 1
-            table.insert(global.event_filters, {filter = "name", name = entity_name})
+            storage.used_prototypes[entity_name] = 1
+            table.insert(storage.event_filters, {filter = "name", name = entity_name})
         end
     end
     for _, surface in pairs(game.surfaces) do
         --destroy all emitters
-        for protoName in pairs(global.used_prototypes) do
+        for protoName in pairs(storage.used_prototypes) do
             local emmiters = surface.find_entities_filtered{type = emitter_type, name = parentName..'__'..protoName}
             if #emmiters > 0 then
                 debugMsg('found '..tostring(#emmiters)..' emitters')
@@ -162,14 +161,14 @@ local function on_init()
         end
 
         --find all machines and create emitter for it
-        for protoName in pairs(global.used_prototypes) do
+        for protoName in pairs(storage.used_prototypes) do
             local workMachines = surface.find_entities_filtered{name = protoName}
             if #workMachines > 0 then
                 debugMsg('found '..tostring(#workMachines)..' machines')
                 for _, machine in pairs(workMachines) do
                     debugMsg('create emitter '..coordinateFormat(machine))
                     local pseudoEvent = {}
-                    pseudoEvent['created_entity'] = machine
+                    pseudoEvent['entity'] = machine
                     on_entity_create_event(pseudoEvent, true)
                 end
             end
@@ -186,21 +185,23 @@ local function on_init()
         ') disabling code running in the world (the mod will still work, but without some features)')
 end
 
-local function validateGlobalTable()
+local function validateStorageTable()
     --check that table is wrong
-    if not global.used_prototypes or not global.machines then
-        debugMsg('global table not valid')
+    if not storage.used_prototypes or not storage.machines then
+        debugMsg('storage table not valid')
         on_init()
     end
 end
 
 --shoud return true if entity working(working, normal, low_power, etc)
-local validStatuses = {
+local validStatuses = {}
+for _, value in pairs({
     defines.entity_status.working,
     defines.entity_status.normal,
     defines.entity_status.low_power
-}
-validStatuses = table.array_to_dictionary(validStatuses, true)
+}) do
+    table.insert(validStatuses, {[value]=true})
+end
 
 local function isStatusIsWorking(machineStatus)
     if validStatuses[machineStatus] then
@@ -213,14 +214,14 @@ local function emitters_update(event)
     if not settings.global["fssm-sync-machine-state-with-emitter"].value then
         return
     end
-    validateGlobalTable()
+    validateStorageTable()
 
-    local machines = global.machines
+    local machines = storage.machines
 
     local limit_checks = settings.global["fssm-limit-of-checks"].value
     local limit_of_actions = settings.global["fssm-limit-of-actions"].value
 
-    local next_key, _, reached_end = flib_table.for_n_of(machines, global.update_index, limit_checks,
+    local next_key, _, reached_end = flib_table.for_n_of(machines, storage.update_index, limit_checks,
     function (value, key)
         local machine = value.machine
         local emitter = value.emitter
@@ -234,7 +235,7 @@ local function emitters_update(event)
             if not emitter then
                 debugMsg('restore emitter for machine '..coordinateFormat(machine))
                 local pseudoEvent = {}
-                pseudoEvent['created_entity'] = machine
+                pseudoEvent['entity'] = machine
                 on_entity_create_event(pseudoEvent, true, true)
                 limit_of_actions = limit_of_actions - 1
             end
@@ -254,9 +255,9 @@ local function emitters_update(event)
     end)
 
     if reached_end then
-        global.update_index = nil
+        storage.update_index = nil
     else
-        global.update_index = next_key
+        storage.update_index = next_key
     end
 end
 
@@ -273,7 +274,7 @@ commands.add_command("fssm-reinit", {"description.command-reinit"}, get_trycatch
 script.on_init(get_trycatch_protect(on_init))
 script.on_load(get_trycatch_protect(function (...)
     debugMsg("on_load")
-    if type(global.event_filters) == "table" then
+    if type(storage.event_filters) == "table" then
         setup_events()
     else
         log("event filters not initialized")
