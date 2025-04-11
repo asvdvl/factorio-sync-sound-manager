@@ -28,20 +28,20 @@ function api.applyNewSound(proto, sound_path, volume)
 
     clog('applyNewSound for '..proto.name.." sound path: "..sound_path)
 
+    local sound = proto and proto.working_sound and proto.working_sound.sound
     proto.working_sound = {
         sound = {
             filename = sound_path,
-            volume = volume or (proto and proto.working_sound and proto.working_sound.sound and proto.working_sound.sound.volume) or 1
+            volume = volume or (sound and sound.volume) or 1,
+            audible_distance_modifier = 0,
+            speaker_audible_distance_modifier = (sound and sound.audible_distance_modifier) or 1 --NOT TESTED!!!
         },
         fade_in_ticks = 30,
         fade_out_ticks = 30,
-        max_sounds_per_type = 1
+        max_sounds_per_prototype = 1
     }
     --TODO add an option when everything is synchronized but always played
     if not get_setting("use_simple_sound_system") then
-        --I don't think this is the best way to pass a value to the next function, but factorio ignores all the extra stuff, so why not?
-        proto.working_sound.speacker_audible_distance_modifier = proto.working_sound.audible_distance_modifier
-        proto.working_sound.audible_distance_modifier = 0
         return api.registerPrototype(proto)
     end
 end
@@ -60,8 +60,9 @@ function api.registerPrototype(proto)
     end
 
     soundEmitterCopy.working_sound = table.deepcopy(proto.working_sound)
-    soundEmitterCopy.working_sound.audible_distance_modifier = proto.working_sound.speacker_audible_distance_modifier or parent.working_sound.audible_distance_modifier
+    soundEmitterCopy.working_sound.sound.audible_distance_modifier = proto.working_sound.sound.speacker_audible_distance_modifier or parent.working_sound.sound.audible_distance_modifier
     soundEmitterCopy.working_sound.persistent = true    --in case if origin not modified this param
+
     soundEmitterCopy.selection_box = proto.selection_box and correct_boxes(proto.selection_box) or parent.selection_box
     soundEmitterCopy.collision_box = proto.collision_box and correct_boxes(proto.collision_box) or parent.collision_box
 
