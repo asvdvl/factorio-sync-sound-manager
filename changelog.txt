@@ -1,4 +1,13 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.1.0
+Date: 2026-11-10
+  Bugfixes:
+    - Fixed emitters being silent for machines with a single sound (the audible distance was written to the entity instead of the sound).
+    - Fixed low_power machines being treated as stopped.
+    - Fixed stale entries being kept when the machine no longer exists.
+  Changes:
+    - Removed the flib dependency (flib_table.for_n_of was removed in flib 0.17).
+---------------------------------------------------------------------------------------------------
 Version: 1.0.1
 Date: 2025-04-11
   Changes:

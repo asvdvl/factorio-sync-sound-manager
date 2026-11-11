@@ -1,5 +1,48 @@
 local startup = settings.startup
-local flib_table = require("__flib__.table")
+
+-- local replacement for flib_table.for_n_of (removed in flib 0.17)
+-- Iterates `n` items of `tbl` starting after `from_k`.
+-- callback(value, key) -> result, delete_current, abort
+-- Returns: next_key, results, reached_end
+local function for_n_of(tbl, from_k, n, callback)
+    if from_k and not tbl[from_k] then
+        from_k = nil
+    end
+
+    local prev, delete, abort
+    local result = {}
+
+    for _ = 1, n do
+        local v
+        if not delete then
+            prev = from_k
+        end
+        from_k, v = next(tbl, from_k)
+        if delete then
+            tbl[delete] = nil
+        end
+
+        if from_k then
+            result[from_k], delete, abort = callback(v, from_k)
+            if delete then
+                delete = from_k
+            end
+            if abort then
+                break
+            end
+        else
+            return from_k, result, true
+        end
+    end
+
+    if delete then
+        tbl[delete] = nil
+        from_k = prev
+    elseif abort then
+        from_k = prev
+    end
+    return from_k, result, false
+end
 
 local emitter_type = "simple-entity"
 local parentName = settings.startup["fssm-parent_name"].value
@@ -200,7 +243,7 @@ for _, value in pairs({
     defines.entity_status.normal,
     defines.entity_status.low_power
 }) do
-    table.insert(validStatuses, {[value]=true})
+    validStatuses[value] = true
 end
 
 local function isStatusIsWorking(machineStatus)
@@ -221,14 +264,17 @@ local function emitters_update(event)
     local limit_checks = settings.global["fssm-limit-of-checks"].value
     local limit_of_actions = settings.global["fssm-limit-of-actions"].value
 
-    local next_key, _, reached_end = flib_table.for_n_of(machines, storage.update_index, limit_checks,
+    local next_key, _, reached_end = for_n_of(machines, storage.update_index, limit_checks,
     function (value, key)
         local machine = value.machine
         local emitter = value.emitter
         local delete_current_item = false
 
         if not machine.valid then
-            return nil, false, false
+            if emitter and emitter.valid then
+                emitter.destroy()
+            end
+            return nil, true, false    --drop stale entry, the machine no longer exists
         end
 
         if isStatusIsWorking(machine.status) then

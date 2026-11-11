@@ -60,8 +60,22 @@ function api.registerPrototype(proto)
     end
 
     soundEmitterCopy.working_sound = table.deepcopy(proto.working_sound)
-    soundEmitterCopy.working_sound.sound.audible_distance_modifier = proto.working_sound.sound.speacker_audible_distance_modifier or parent.working_sound.sound.audible_distance_modifier
     soundEmitterCopy.working_sound.persistent = true    --in case if origin not modified this param
+
+    -- speaker_audible_distance_modifier is a transport field used by clients (see README):
+    -- the client zeroes proto.working_sound.sound.audible_distance_modifier to silence the machine
+    -- and puts the original value here. Pull it back into the emitter sound, because
+    -- Sound::audible_distance_modifier is the only property the game actually reads.
+    local sound = soundEmitterCopy.working_sound.sound
+    if sound then
+        local sounds = (sound.filename or sound.variations) and {sound} or sound
+        for _, s in pairs(sounds) do
+            if s.speaker_audible_distance_modifier ~= nil then
+                s.audible_distance_modifier = s.speaker_audible_distance_modifier
+            end
+            s.speaker_audible_distance_modifier = nil
+        end
+    end
 
     soundEmitterCopy.selection_box = proto.selection_box and correct_boxes(proto.selection_box) or parent.selection_box
     soundEmitterCopy.collision_box = proto.collision_box and correct_boxes(proto.collision_box) or parent.collision_box

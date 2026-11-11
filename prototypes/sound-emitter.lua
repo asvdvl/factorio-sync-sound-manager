@@ -25,7 +25,7 @@ data:extend
 
         alert_when_damaged = false,
         create_ghost_on_death = false,
-        selectable_in_game = settings.startup["fssm-debug"].value,
+        selectable_in_game = false and settings.startup["fssm-debug"].value,
 
         resistances = {
 
